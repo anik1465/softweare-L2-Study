@@ -19,6 +19,8 @@
     --hard: #f85149;
     --done-bg: #0f2417;
     --done-border: #1f5c33;
+    --flag: #e3a008;
+    --flag-bg: rgba(227,160,8,.12);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -53,7 +55,7 @@
   /* Overall progress */
   .overall {
     background: var(--panel); border: 1px solid var(--border);
-    border-radius: 14px; padding: 18px 20px; margin: 16px 0 22px;
+    border-radius: 14px; padding: 18px 20px; margin: 16px 0 14px;
   }
   .overall-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
   .overall-top .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
@@ -61,6 +63,23 @@
   .bar { height: 10px; background: var(--panel-2); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
   .bar > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--easy)); transition: width .5s cubic-bezier(.4,0,.2,1); }
   .overall .count { font-size: 12px; color: var(--muted); margin-top: 9px; }
+
+  /* Flagged panel */
+  .flagged-panel {
+    background: var(--panel); border: 1px solid var(--flag);
+    border-radius: 14px; padding: 14px 18px; margin-bottom: 20px;
+  }
+  .flagged-panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--flag); margin-bottom: 8px; }
+  .flagged-panel .hint { font-size: 11px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+  .flag-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--flag-bg); border: 1px solid var(--flag);
+    color: var(--ink); font-size: 12px; padding: 5px 10px; border-radius: 7px;
+    margin: 0 6px 6px 0; cursor: pointer;
+  }
+  .flag-chip:hover { background: rgba(227,160,8,.22); }
+  .flag-chip .x { color: var(--flag); font-weight: 700; }
+  .flag-empty { font-size: 12px; color: var(--muted); }
 
   .week {
     background: var(--panel); border: 1px solid var(--border);
@@ -92,13 +111,16 @@
   .prob {
     display: flex; align-items: center; gap: 12px;
     padding: 10px 12px; border-radius: 9px;
-    transition: background .12s; cursor: pointer;
+    transition: background .12s;
   }
   .prob:hover { background: var(--panel-2); }
   .prob.done { background: var(--done-bg); }
+  .prob.flagged { border: 1px solid var(--flag); background: var(--flag-bg); }
+  .prob.done.flagged { background: var(--done-bg); border-color: var(--flag); }
   .cbox {
     width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0;
     border: 2px solid var(--border); position: relative; transition: all .15s;
+    cursor: pointer;
   }
   .prob.done .cbox { background: var(--easy); border-color: var(--easy); }
   .prob.done .cbox::after {
@@ -106,12 +128,19 @@
     width: 4px; height: 9px; border: solid #0d1117;
     border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
   }
-  .prob-name { flex: 1; font-size: 13px; }
+  .prob-name { flex: 1; font-size: 13px; cursor: pointer; }
   .prob.done .prob-name { color: var(--muted); text-decoration: line-through; }
   .diff { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; letter-spacing: .5px; }
   .diff.easy { background: rgba(63,185,80,.16); color: var(--easy); }
   .diff.med { background: rgba(210,153,34,.16); color: var(--med); }
   .diff.hard { background: rgba(248,81,73,.16); color: var(--hard); }
+  .flag-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    font-family: inherit; font-size: 11px; padding: 3px 8px; border-radius: 6px;
+    cursor: pointer; transition: all .15s; flex-shrink: 0;
+  }
+  .flag-btn:hover { border-color: var(--flag); color: var(--flag); }
+  .prob.flagged .flag-btn { border-color: var(--flag); color: var(--flag); background: var(--flag-bg); }
 
   .reset {
     margin-top: 24px; text-align: center;
@@ -134,9 +163,9 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">Software Engineering &middot; Level 2</div>
+    <div class="eyebrow">Software Engineering &middot; Level 2 &middot; Backend (Python)</div>
     <h1>Coding Round Prep Tracker</h1>
-    <div class="tagline">12 weeks &middot; ~10 hrs/week &middot; pattern-first &middot; ~150 problems</div>
+    <div class="tagline">12 weeks &middot; ~10 hrs/week &middot; pattern-first &middot; 71 items + spaced re-solves &middot; mocks from week 8</div>
     <div class="sync-bar">
       <span class="dot" id="syncDot"></span>
       <span id="syncText">Connecting&hellip;</span>
@@ -144,7 +173,7 @@
   </header>
 
   <div class="setup-note" id="setupNote">
-    <b>One-time setup (same as your trade journal):</b> open this file and paste your Firebase config into the <code>firebaseConfig</code> object near the top of the &lt;script&gt; block, then deploy to GitHub Pages. Until then, progress saves locally in-memory only and won't sync across devices. <b>Tip:</b> you can point it at your existing <code>trade-journal-b73cd</code> project — just use a separate path (this app writes under <code>/l2prep</code>), so it won't touch your trade data.
+    <b>Deploy:</b> drop this file into your <code>softweare-L2-Study</code> GitHub Pages repo (replace the old tracker). Firebase config is already wired to your <code>trade-journal-b73cd</code> project and writes under <code>/l2prep</code>. <b>New:</b> click the &#9873; button on any problem you couldn't redo cold in ~20 min — it lands in the re-solve queue below and stays there until you clear it.
   </div>
 
   <div class="overall">
@@ -153,7 +182,13 @@
       <span class="pct" id="overallPct">0%</span>
     </div>
     <div class="bar"><span id="overallBar"></span></div>
-    <div class="count" id="overallCount">0 of 0 problems complete</div>
+    <div class="count" id="overallCount">0 of 0 items complete</div>
+  </div>
+
+  <div class="flagged-panel" id="flaggedPanel" style="display:none;">
+    <h2>&#9873; Re-solve queue <span id="flagCount"></span></h2>
+    <div class="hint">Rule: anything you can't redo cold in ~20 minutes after 7 days gets flagged and re-queued. Click a chip to jump to it, or un-flag it once it's clean.</div>
+    <div id="flagList"></div>
   </div>
 
   <div id="weeks"></div>
@@ -163,8 +198,8 @@
 
 <script type="module">
 // ============================================================
-//  FIREBASE CONFIG — paste your project's config here.
-//  (You can reuse trade-journal-b73cd; this app writes under /l2prep only.)
+//  FIREBASE CONFIG — already wired to trade-journal-b73cd.
+//  This app writes under /l2prep only; trade data untouched.
 // ============================================================
 const firebaseConfig = {
   apiKey: "AIzaSyAj0I_CZEJFQ8pqFLozZZzHuUTnL_llruw",
@@ -179,66 +214,80 @@ const firebaseConfig = {
 const DB_PATH = "l2prep/progress";   // change the user segment if you want per-device separation
 // ============================================================
 
-// ----- Plan data -----
+// ----- Plan data (refined for backend L2, Python) -----
 const PLAN = [
   { tag: "Weeks 1–2", title: "Arrays/Strings + Two Pointers + Sliding Window",
-    why: "You know two-pointer basics — solidify sliding window (variable + fixed size), which trips up most people.",
+    why: "Solidify sliding window (variable + fixed size) — it trips up most people. Write everything idiomatically: enumerate, zip, str methods.",
     probs: [
       ["Valid Anagram","easy"],["Group Anagrams","med"],["Container With Most Water","med"],
       ["Longest Substring Without Repeating Characters","med"],["Longest Repeating Character Replacement","med"],
       ["Minimum Window Substring","hard"]
     ]},
-  { tag: "Weeks 3–4", title: "Hashmaps + Stacks/Queues",
-    why: "Hashmaps are a strength — push into stack patterns, especially the monotonic stack.",
+  { tag: "Weeks 3–4", title: "Hashmaps + Stacks/Queues + Greedy",
+    why: "Hashmaps are a strength — push into the monotonic stack, then two quick greedy wins. Use collections.Counter/defaultdict/deque, not hand-rolled dicts.",
     probs: [
       ["Valid Parentheses","easy"],["Min Stack","med"],["Evaluate Reverse Polish Notation","med"],
-      ["Daily Temperatures","med"],["Next Greater Element I","easy"],["Car Fleet","med"]
+      ["Daily Temperatures","med"],["Next Greater Element I","easy"],["Car Fleet","med"],
+      ["Jump Game","med"],["Gas Station","med"]
     ]},
-  { tag: "Week 5", title: "Linked Lists (consolidate)",
-    why: "You've hit pointer bugs here — drill until clean. Trace pointers on paper before typing.",
+  { tag: "Week 5", title: "Linked Lists + Design",
+    why: "Drill pointer work until clean (trace on paper first). LRU Cache is THE most-asked backend L2 design-in-code question — know it cold, dict + doubly-linked list.",
     probs: [
       ["Reverse Linked List","easy"],["Merge Two Sorted Lists","easy"],["Linked List Cycle","easy"],
-      ["Remove Nth Node From End of List","med"],["Reorder List","med"],["Add Two Numbers","med"]
+      ["Remove Nth Node From End of List","med"],["Reorder List","med"],["Add Two Numbers","med"],
+      ["LRU Cache","med"],["LFU Cache (stretch)","hard"]
     ]},
-  { tag: "Weeks 6–7", title: "Trees + BFS/DFS",
-    why: "Highest-yield section for L2. Learn all three traversals iteratively and recursively.",
+  { tag: "Weeks 6–7", title: "Trees + BFS/DFS + Tries",
+    why: "Highest-yield section for L2. All three traversals iteratively AND recursively. Serialize/Deserialize and tries show up more than people expect.",
     probs: [
       ["Invert Binary Tree","easy"],["Maximum Depth of Binary Tree","easy"],["Diameter of Binary Tree","easy"],
       ["Binary Tree Level Order Traversal","med"],["Validate Binary Search Tree","med"],
-      ["Lowest Common Ancestor of a BST","med"],["Construct Tree from Preorder & Inorder","med"]
+      ["Lowest Common Ancestor of a BST","med"],["Kth Smallest Element in a BST","med"],
+      ["Construct Tree from Preorder & Inorder","med"],["Serialize/Deserialize Binary Tree","hard"],
+      ["Implement Trie (Prefix Tree)","med"],["Word Search","med"]
     ]},
-  { tag: "Week 8", title: "Graphs",
-    why: "BFS/DFS on grids and adjacency lists, plus topological sort. Most graph problems are variations on these.",
+  { tag: "Week 8", title: "Graphs + Union-Find + First Mock",
+    why: "BFS/DFS on grids + adjacency lists, topo sort, and union-find for connectivity. Start timed mocks NOW — mock performance is a skill you build, not a switch you flip.",
     probs: [
       ["Number of Islands","med"],["Clone Graph","med"],["Rotting Oranges","med"],
-      ["Pacific Atlantic Water Flow","med"],["Course Schedule (topological sort)","med"]
+      ["Pacific Atlantic Water Flow","med"],["Course Schedule (topological sort)","med"],
+      ["Redundant Connection (union-find)","med"],["Timed mock interview #1 (Pramp/peer)","med"]
     ]},
-  { tag: "Weeks 9–10", title: "Dynamic Programming",
-    why: "You've done memoization vs. tabulation — now apply it. Most-feared, but you have the foundation.",
+  { tag: "Weeks 9–10", title: "Dynamic Programming + Backtracking",
+    why: "You have the memoization/tabulation foundation — now apply it at volume. Backtracking was a gap: Subsets → Permutations → Combination Sum is the canonical ramp.",
     probs: [
       ["Climbing Stairs","easy"],["House Robber","med"],["Coin Change","med"],
-      ["Longest Increasing Subsequence","med"],["Unique Paths","med"],["Longest Common Subsequence","med"]
+      ["Longest Increasing Subsequence","med"],["Unique Paths","med"],["Longest Common Subsequence","med"],
+      ["Word Break","med"],["Decode Ways","med"],["Partition Equal Subset Sum","med"],
+      ["Subsets","med"],["Permutations","med"],["Combination Sum","med"]
     ]},
   { tag: "Week 11", title: "Heaps + Binary Search + Intervals",
-    why: "Heaps are familiar — add binary search (incl. on answer space) and interval merging.",
+    why: "heapq fluency (note: min-heap only — negate for max). Binary search on the answer space (Koko). Meeting Rooms II is a heap problem in disguise.",
     probs: [
       ["Kth Largest Element in a Stream","easy"],["Top K Frequent Elements","med"],["Merge K Sorted Lists","hard"],
       ["Search in Rotated Sorted Array","med"],["Find Minimum in Rotated Sorted Array","med"],
-      ["Merge Intervals","med"],["Insert Interval","med"]
+      ["Koko Eating Bananas","med"],["Time Based Key-Value Store","med"],
+      ["Merge Intervals","med"],["Insert Interval","med"],["Non-Overlapping Intervals","med"],
+      ["Meeting Rooms II","med"]
     ]},
-  { tag: "Week 12", title: "Mock Interviews + Weak-Spot Review",
-    why: "Stop learning new patterns. Simulate the real thing and cement what's shaky.",
+  { tag: "Week 12", title: "Mocks + SQL + Weak-Spot Review",
+    why: "Stop learning new patterns. Backend L2 loops usually include a practical round — drill schema design + joins/aggregations, and be able to talk threading/queue/GIL in Python.",
     probs: [
-      ["Timed mock interview #1 (Pramp/peer)","easy"],["Timed mock interview #2","med"],
-      ["Cold re-attempt of flagged hard problems","hard"],["Narrate full approach out loud, end to end","med"],
+      ["Timed mock interview #2","med"],["Timed mock interview #3","med"],
+      ["SQL + schema design session #1","med"],["SQL + schema design session #2","med"],
+      ["Python concurrency talking points (threading, queue.Queue, GIL)","easy"],
+      ["Cold re-attempt of everything in the re-solve queue","hard"],
+      ["Narrate full approach out loud, end to end","med"],
       ["Review one-line pattern notes from all weeks","easy"]
     ]}
 ];
 
 // ----- State -----
-let state = {};            // { "w0p1": true, ... }
+// state keys: "w0p1" => done, "f_w0p1" => flagged for re-solve
+let state = {};
 let db = null, dbRef = null, dbMod = null;
 const keyFor = (w,p) => `w${w}p${p}`;
+const flagKeyFor = (w,p) => `f_w${w}p${p}`;
 
 // ----- Firebase init (graceful fallback to local) -----
 async function initFirebase() {
@@ -282,9 +331,16 @@ function setSync(on, msg) {
   if (on) document.getElementById("setupNote").style.display = "none";
 }
 
-// ----- Toggle -----
+// ----- Toggles -----
 function toggle(w, p) {
   const k = keyFor(w, p);
+  if (state[k]) delete state[k]; else state[k] = true;
+  persist();
+  render();
+}
+
+function toggleFlag(w, p) {
+  const k = flagKeyFor(w, p);
   if (state[k]) delete state[k]; else state[k] = true;
   persist();
   render();
@@ -293,7 +349,7 @@ function toggle(w, p) {
 // ----- Render -----
 let openWeeks = new Set([0]);  // first week open by default
 function render() {
-  // totals
+  // totals (flags don't count toward progress)
   let total = 0, done = 0;
   PLAN.forEach((wk, wi) => {
     wk.probs.forEach((_, pi) => { total++; if (state[keyFor(wi,pi)]) done++; });
@@ -301,7 +357,32 @@ function render() {
   const pct = total ? Math.round(done/total*100) : 0;
   document.getElementById("overallPct").textContent = pct + "%";
   document.getElementById("overallBar").style.width = pct + "%";
-  document.getElementById("overallCount").textContent = `${done} of ${total} problems complete`;
+  document.getElementById("overallCount").textContent = `${done} of ${total} items complete`;
+
+  // flagged panel
+  const flagged = [];
+  PLAN.forEach((wk, wi) => {
+    wk.probs.forEach(([name], pi) => {
+      if (state[flagKeyFor(wi,pi)]) flagged.push({ wi, pi, name, tag: wk.tag });
+    });
+  });
+  const panel = document.getElementById("flaggedPanel");
+  const list = document.getElementById("flagList");
+  if (flagged.length) {
+    panel.style.display = "block";
+    document.getElementById("flagCount").textContent = `(${flagged.length})`;
+    list.innerHTML = "";
+    flagged.forEach(f => {
+      const chip = document.createElement("span");
+      chip.className = "flag-chip";
+      chip.innerHTML = `<span>${f.name}</span><span style="color:var(--muted);font-size:10px;">${f.tag}</span><span class="x">&times;</span>`;
+      chip.title = "Click to un-flag (jump to week via header below)";
+      chip.onclick = () => toggleFlag(f.wi, f.pi);
+      list.appendChild(chip);
+    });
+  } else {
+    panel.style.display = "none";
+  }
 
   const container = document.getElementById("weeks");
   container.innerHTML = "";
@@ -333,14 +414,18 @@ function render() {
     probs.className = "probs";
     wk.probs.forEach(([name, diff], pi) => {
       const done = !!state[keyFor(wi,pi)];
+      const flaggedProb = !!state[flagKeyFor(wi,pi)];
       const row = document.createElement("div");
-      row.className = "prob" + (done ? " done" : "");
+      row.className = "prob" + (done ? " done" : "") + (flaggedProb ? " flagged" : "");
       const diffLabel = diff === "med" ? "MEDIUM" : diff.toUpperCase();
       row.innerHTML = `
         <span class="cbox"></span>
         <span class="prob-name">${name}</span>
-        <span class="diff ${diff}">${diffLabel}</span>`;
-      row.onclick = () => toggle(wi, pi);
+        <span class="diff ${diff}">${diffLabel}</span>
+        <button class="flag-btn">${flaggedProb ? "⚑ flagged" : "⚐ flag"}</button>`;
+      row.querySelector(".cbox").onclick = () => toggle(wi, pi);
+      row.querySelector(".prob-name").onclick = () => toggle(wi, pi);
+      row.querySelector(".flag-btn").onclick = (e) => { e.stopPropagation(); toggleFlag(wi, pi); };
       probs.appendChild(row);
     });
     el.appendChild(probs);
@@ -349,7 +434,7 @@ function render() {
 }
 
 document.getElementById("resetBtn").onclick = () => {
-  if (confirm("Reset all progress? This clears every checkmark.")) {
+  if (confirm("Reset all progress? This clears every checkmark AND every flag.")) {
     state = {};
     persist();
     render();
